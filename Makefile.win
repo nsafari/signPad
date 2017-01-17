@@ -1,0 +1,33 @@
+# Project: SerialComunication
+# Makefile created by Dev-C++ 4.9.9.2
+
+CPP  = g++.exe
+CC   = gcc.exe
+WINDRES = windres.exe
+RES  = 
+OBJ  = main.o protocol.o $(RES)
+LINKOBJ  = main.o protocol.o $(RES)
+LIBS =  -L"I:/Nader/Dev-Cpp/lib"  
+INCS =  -I"I:/Nader/Dev-Cpp/include" 
+CXXINCS =  -I"I:/Nader/Dev-Cpp/lib/gcc/mingw32/3.4.2/include"  -I"I:/Nader/Dev-Cpp/include/c++/3.4.2/backward"  -I"I:/Nader/Dev-Cpp/include/c++/3.4.2/mingw32"  -I"I:/Nader/Dev-Cpp/include/c++/3.4.2"  -I"I:/Nader/Dev-Cpp/include" 
+BIN  = SerialComunication.exe
+CXXFLAGS = $(CXXINCS)  
+CFLAGS = $(INCS)  
+RM = rm -f
+
+.PHONY: all all-before all-after clean clean-custom
+
+all: all-before SerialComunication.exe all-after
+
+
+clean: clean-custom
+	${RM} $(OBJ) $(BIN)
+
+$(BIN): $(OBJ)
+	$(CC) $(LINKOBJ) -o "SerialComunication.exe" $(LIBS)
+
+main.o: main.c
+	$(CC) -c main.c -o main.o $(CFLAGS)
+
+protocol.o: protocol.c
+	$(CC) -c protocol.c -o protocol.o $(CFLAGS)
