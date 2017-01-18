@@ -44,6 +44,11 @@ void AddDynamicLengthField(field_type fieldType, field_length_type lengthType, i
 /*
 * Parse the incoming data based on the defined protocol
 */
-field * parse(char data[]);
+field * Parse(char data[]);
+
+/*
+*
+*/
+void Compose();
  
 #endif

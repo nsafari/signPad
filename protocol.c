@@ -15,15 +15,19 @@ void AddField(field_type fieldType, int length, int defaultValue, int validValue
 void AddDynamicLengthField(field_type fieldType, field_length_type fieldLengthType, int defaultValue, int validValues[]){
 }
 
+/*
+* Reutrn a packet from index to index + length of the data
+*/
 char * read(int index, int length, char *data){
      
 }
+
 
 char * desialize(){
 }
 
 
-field * parse(char data[]){
+field * Parse(char data[]){
    int count = 0;
    int index = 0;
    
@@ -45,7 +49,7 @@ field * parse(char data[]){
       switch(_field.type){
          case STX:
          case COM:
-              desialize();
+              desialize(field_value);
               break;
          case DTA:
               break;                         

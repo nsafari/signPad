@@ -120,20 +120,8 @@ int main(int argc, char *argv[])
       return (2);
    }
    
-      char DataBuffer2[] = "this is a test";
-      char *pDataBuffer = DataBuffer2;
 
-       char c;
-       
-       printf("size of *theCharacter %x \n", DataBuffer2);
-       printf("size of *theCharacter %x \n", &DataBuffer2[0]);
-       printf("size of *theCharacter %x \n", pDataBuffer);
-       
-       
-       printf("size of theCharacter %d \n", sizeof(DataBuffer2));
-       printf("size of char %d \n", sizeof(c));
-
-   ReadCharacterFromCom1(serialHandle, pDataBuffer);
+   ReadCharacterFromCom1(serialHandle, DataBuffer);
    
 
     CloseHandle(serialHandle);
