@@ -14,11 +14,12 @@ void PrintCommState(DCB dcb)
               dcb.StopBits );
 }
 
-void ReadCharacterFromCom1(HANDLE comPorthandle, char *theCharacter)
+void ReadCharacterFromCom1(HANDLE comPorthandle, unsigned char *theCharacter)
 {
+      
    DWORD numBytesRead;
-
-   printf ("byte to read: %d.\n", sizeof(theCharacter));
+   
+   printf("Read bytes -> %x \n", *theCharacter);
 
    while( 1 == 1 ){               
        numBytesRead = 0;
@@ -32,25 +33,31 @@ void ReadCharacterFromCom1(HANDLE comPorthandle, char *theCharacter)
                    NULL);
        }
        
+       
        printf ("byte read: %d.\n", numBytesRead);
-       printf("Read %s \n", theCharacter);
+       printf("Read bytes -> %x \n", *theCharacter);
        
 
        
-       memset(theCharacter, 0, 100*sizeof(*theCharacter));
+//       memset(theCharacter, 0, 100*sizeof(*theCharacter));
    }
    return;
 }
 
 int main(int argc, char *argv[])
 {
-    field field1;
-    field1.length_type = fix_length;
+    log_level = DBUG;
+        
+    AddField(STX, 1, 0x55, 0x00);
+    AddField(COM, 1, 0X00, NULL);
+    AddField(FLG, 1, 0x00, NULL);
+    AddField(SER, 2, 0x00, 0x00);
+    AddField(LEN, 2, 0x00, 0x00);
+
+    unsigned char data[] = {0xfa, 0xbb, 0xdd};
+    Parse(data);
     
-    int values[4] = {1, 2, 3, 4};
- 
-    AddField(STX, fix_length, 1, values);
-    
+        
     BOOL fSuccess;
     TCHAR *pcCommPort = TEXT("\\\\.\\COM5");
     // Open serial port
@@ -70,11 +77,11 @@ int main(int argc, char *argv[])
     
     // Set timeouts
     COMMTIMEOUTS timeout = { 0 };
-    timeout.ReadIntervalTimeout = 500;
-    timeout.ReadTotalTimeoutConstant = 500;
-    timeout.ReadTotalTimeoutMultiplier = 500;
-    timeout.WriteTotalTimeoutConstant = 500;
-    timeout.WriteTotalTimeoutMultiplier = 500;
+    timeout.ReadIntervalTimeout = 50;
+    timeout.ReadTotalTimeoutConstant = 50;
+    timeout.ReadTotalTimeoutMultiplier = 50;
+    timeout.WriteTotalTimeoutConstant = 50;
+    timeout.WriteTotalTimeoutMultiplier = 50;
     
     fSuccess = SetCommTimeouts(serialHandle, &timeout);
         
@@ -120,8 +127,10 @@ int main(int argc, char *argv[])
       return (2);
    }
    
+   unsigned char byte = 0xaa;
+   unsigned char *bytes = &byte;
 
-   ReadCharacterFromCom1(serialHandle, DataBuffer);
+   ReadCharacterFromCom1(serialHandle, bytes);
    
 
     CloseHandle(serialHandle);

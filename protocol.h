@@ -1,5 +1,13 @@
 #ifndef _PROTOCOL_H_
 #define _PROTOCOL_H_
+
+typedef enum {
+     INFO = 0,
+     DBUG = 1,
+     EROR = 2
+} log_levels;
+
+extern log_levels log_level; 
  
 int getfavoritenumber(void);
 
@@ -22,13 +30,12 @@ typedef enum {
 
 typedef struct {
         int index;
-        char *name;
         field_type type;
         field_length_type length_type;
         int length;
         int default_value;       
-        char *value;
-        int valid_values[];
+        unsigned char *value;
+        int *valid_values;
 } field;
 
 /*
@@ -44,7 +51,7 @@ void AddDynamicLengthField(field_type fieldType, field_length_type lengthType, i
 /*
 * Parse the incoming data based on the defined protocol
 */
-field * Parse(char data[]);
+field * Parse(unsigned char *data);
 
 /*
 *
