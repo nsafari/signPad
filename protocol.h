@@ -39,6 +39,11 @@ typedef struct {
 } field;
 
 /*
+ * Allocate memory with size of (count * sizeof(field))
+ */
+void SetFieldCount(int count);
+
+/*
 * Add static length field
 */
 void AddField(field_type fieldType, int length, int defaultValue, int validValues[]);
@@ -52,6 +57,7 @@ void AddDynamicLengthField(field_type fieldType, field_length_type lengthType, i
 * Parse the incoming data based on the defined protocol
 */
 field * Parse(unsigned char *data);
+
 
 /*
 *
