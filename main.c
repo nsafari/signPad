@@ -46,15 +46,19 @@ int main(int argc, char *argv[]) {
 
     log_level = DBUG;
 
-    SetFieldCount(5);
+    SetFieldCount(9);
 
     AddField(STX, 1, 0x55, 0x00);
     AddField(COM, 1, 0X00, NULL);
     AddField(FLG, 1, 0x00, NULL);
+    AddField(INF, 1, 0x00, NULL);
     AddField(SER, 2, 0x00, 0x00);
     AddField(LEN, 2, 0x00, 0x00);
+    AddDynamicLengthField(DTA, LEN, 0x00, NULL);
+    AddField(CRC, 1, 0X00, NULL);
+    AddField(ETX, 1, 0xAA, NULL);
 
-    unsigned char data[] = {0xa1, 0xb2, 0xc3, 0xd4, 0xe5, 0xf6, 0xa2};
+    unsigned char data[] = {0xA1, 0xB2, 0xC3, 0xD4, 0xE5, 0xF6, 0x00, 0x01, 0xA2, 0xB3, 0xC4};
     Parse(data);
 
     BOOL fSuccess;

@@ -51,7 +51,7 @@ void AddField(field_type fieldType, int length, int defaultValue, int validValue
 /*
 * Add dynamic length field
 */
-void AddDynamicLengthField(field_type fieldType, field_length_type lengthType, int defaultValue, int validValues[]);
+void AddDynamicLengthField(field_type fieldType, field_type dependentFieldType, int defaultValue, int validValues[]);
 
 /*
 * Parse the incoming data based on the defined protocol

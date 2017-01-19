@@ -1,8 +1,10 @@
-#include <stdarg.h>
+#define bytes_to_u16(MSB,LSB) (((unsigned int) ((unsigned char) MSB)) & 255)<<8 | (((unsigned char) LSB)&255)
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <mem.h>
 #include "protocol.h"
+
+
 
 log_levels log_level = INFO;
 
@@ -22,12 +24,19 @@ field *fields;
 */
 int static fieldc = 0;
 
+unsigned char *read(int *index, int length, unsigned char *data);
+
+unsigned char *readWithDynamicLength(int *index, int dependentFieldType, unsigned char *data);
+
+field *Parse(unsigned char *data);
+
+int findFieldByType(field_type fieldType);
+
 void SetFieldCount(int count) {
     fields = (field *) malloc(count * sizeof(field));
 }
 
 void AddField(field_type fieldType, int length, int defaultValue, int validValues[]) {
-
     fields[fieldc].index = fieldc;
     fields[fieldc].type = fieldType;
     fields[fieldc].length_type = fix_length;
@@ -35,15 +44,37 @@ void AddField(field_type fieldType, int length, int defaultValue, int validValue
     fields[fieldc].default_value = defaultValue;
     fields[fieldc].valid_values = validValues;
     fieldc++;
-    log(DBUG, "new field added ");
+    log(DBUG, "new field added");
 }
 
 void
-AddDynamicLengthField(field_type fieldType, field_length_type fieldLengthType, int defaultValue, int validValues[]) {
+AddDynamicLengthField(field_type fieldType, field_type dependentFieldType, int defaultValue, int validValues[]) {
+    fields[fieldc].index = fieldc;
+    fields[fieldc].type = fieldType;
+    fields[fieldc].length_type = dynamic_length;
+    fields[fieldc].length = dependentFieldType;
+    fields[fieldc].default_value = defaultValue;
+    fields[fieldc].valid_values = validValues;
+    fieldc++;
+    log(DBUG, "new dynamic length field added");
 }
 
 /*
-* Reutrn a packet from index to index + length of the data
+ * Search the fields by fieldType and return index of that
+ * return -1 if fieldType not found
+ */
+int findFieldByType(field_type fieldType) {
+    int i = 0;
+    for(i =0; i <= fieldc; i++){
+        if(fields[i].type == fieldType){
+            return i;
+        }
+    }
+    return -1;
+}
+
+/*
+* Return a packet from index to index + length of the data
 * Example ->
 * data : |f|o|o|a|b|
 * index : 2 --^ length: 2
@@ -52,21 +83,20 @@ AddDynamicLengthField(field_type fieldType, field_length_type fieldLengthType, i
 unsigned char *read(int *index, int length, unsigned char *data) {
     unsigned char *result = malloc(length * sizeof(unsigned char));
     int i = 0;
-    for (i = 0; i < length; i++, (*index)++) {
+    for (i ; i < length; i++, (*index)++) {
         *(result + i) = *(data + (*index));
     }
     return result;
 }
 
 
-char *desialize() {
+unsigned char *readWithDynamicLength(int *index, int dependentFieldType, unsigned char *data) {
+    int fieldIndex = findFieldByType((field_type) dependentFieldType);
+    return read(index, bytes_to_u16(fields[fieldIndex].value[0], fields[fieldIndex].value[1]), data);
 }
 
-
-void myFun() {
-    char *result = (char *) malloc(1);
-    strcpy(result, "k");
-    printf("String = %s,  Address = %u\n", result, result);
+char *desialize() {
+    //Let's free current field.value first
 }
 
 field *Parse(unsigned char *data) {
@@ -75,19 +105,20 @@ field *Parse(unsigned char *data) {
 
     while (count < fieldc) {
         char *field_value;
-        field _field = (field) *(fields + count);
+        field *_field = fields + count;
 
         //Read field value based on defined length
-        switch (_field.length_type) {
+        switch ((*_field).length_type) {
             case fix_length:
-                _field.value = read(&index, _field.length, data);
+                (*_field).value = read(&index, (*_field).length, data);
                 break;
             case dynamic_length:
+                (*_field).value = readWithDynamicLength(&index, (*_field).length, data);
                 break;
         }
 
-        //Deserialize vlaue base on defined type
-        switch (_field.type) {
+        //Deserialize value base on defined type
+        switch ((*_field).type) {
             case STX:
             case COM:
                 desialize(field_value);
@@ -95,12 +126,13 @@ field *Parse(unsigned char *data) {
             case DTA:
                 break;
         }
-        printf("field %d: %0.2x \n", _field.type, *_field.value);
+        printf("field %d: %0.2x \n", (*_field).type, *((*_field).value));
         count++;
 
     }
 
 
 }
+
 
 
