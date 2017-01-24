@@ -23,6 +23,16 @@ typedef enum{
         ETX = 8
 } field_type;
 
+typedef enum{
+    CLR_SCR = 0x80,
+    SHO_TXT = 0x81,
+    GET_SNG = 0x82,
+    GOT_SNG = 0x83,
+    SND_SNG = 0x84,
+    SVE_SNG = 0X85
+} cmd_type;
+
+
 typedef enum {
         fix_length = 0,
         dynamic_length = 1
@@ -33,10 +43,18 @@ typedef struct {
         field_type type;
         field_length_type length_type;
         int length;
-        int default_value;       
+        int default_value;
+        int from;
+        int to;
         unsigned char *value;
         int *valid_values;
 } field;
+
+
+typedef struct{
+    cmd_type type;
+    void *data;
+} cmd;
 
 /*
  * Allocate memory with size of (count * sizeof(field))
