@@ -1,14 +1,16 @@
-#define bytes_to_u16(MSB, LSB) (((unsigned int) ((unsigned char) MSB)) & 255)<<8 | (((unsigned char) LSB)&255)
+#define bytes_to_u16(MSB, LSB) (((int16_t) ((unsigned char) MSB)) & 255)<<8 | (((unsigned char) LSB)&255)
 
+#include <limits.h> // CHAR_BIT, UCHAR_MAX
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include "protocol.h"
 
 
 log_levels log_level = INFO;
 
-void log(log_levels level, char *msg) {
+void Log(log_levels level, char *msg) {
     if (log_level == level) {
         printf("%s \n", msg);
     }
@@ -23,12 +25,11 @@ field *fields;
 * Protocol fields count
 */
 int static fieldc = 0;
+int static fieldsSize = 0;
 
-unsigned char *read(int *index, int length, unsigned char *data);
+unsigned char *read(int *index, int16_t length, unsigned char *data);
 
-unsigned char *readWithDynamicLength(int *index, int dependentFieldType, unsigned char *data);
-
-field *Parse(unsigned char *data);
+unsigned char *readWithDynamicLength(int *index, int16_t dependentFieldType, unsigned char *data);
 
 int findFieldByType(field_type fieldType);
 
@@ -36,7 +37,7 @@ void SetFieldCount(int count) {
     fields = (field *) malloc(count * sizeof(field));
 }
 
-void AddField(field_type fieldType, int length, int defaultValue, int validValues[]) {
+void AddField(field_type fieldType, int16_t length, unsigned char defaultValue, unsigned char validValues[]) {
     fields[fieldc].index = fieldc;
     fields[fieldc].type = fieldType;
     fields[fieldc].length_type = fix_length;
@@ -44,11 +45,12 @@ void AddField(field_type fieldType, int length, int defaultValue, int validValue
     fields[fieldc].default_value = defaultValue;
     fields[fieldc].valid_values = validValues;
     fieldc++;
-    log(DBUG, "a new field added");
+    fieldsSize += length;
+    Log(DBUG, "a new field added");
 }
 
 void
-AddDynamicLengthField(field_type fieldType, field_type dependentFieldType, int defaultValue, int validValues[]) {
+AddDynamicLengthField(field_type fieldType, field_type dependentFieldType, unsigned char defaultValue, unsigned char validValues[]) {
     fields[fieldc].index = fieldc;
     fields[fieldc].type = fieldType;
     fields[fieldc].length_type = dynamic_length;
@@ -57,7 +59,7 @@ AddDynamicLengthField(field_type fieldType, field_type dependentFieldType, int d
     fields[fieldc].default_value = defaultValue;
     fields[fieldc].valid_values = validValues;
     fieldc++;
-    log(DBUG, "a new dynamic length field added");
+    Log(DBUG, "a new dynamic length field added");
 }
 
 /*
@@ -81,7 +83,7 @@ int findFieldByType(field_type fieldType) {
 * index : 2 --^ length: 2
 * result: |1|a| index: 4
 */
-unsigned char *read(int *index, int length, unsigned char *data) {
+unsigned char *read(int *index, int16_t length, unsigned char *data) {
     unsigned char *result = malloc(length * sizeof(unsigned char));
     int i = 0;
     for (i; i < length; i++, (*index)++) {
@@ -90,6 +92,7 @@ unsigned char *read(int *index, int length, unsigned char *data) {
     return result;
 }
 
+
 /*
 * Return a value of data from index to index + 1
 * Example ->
@@ -97,17 +100,29 @@ unsigned char *read(int *index, int length, unsigned char *data) {
 * index : 2 --^
 * result: 26
 */
-int readInt(int index, unsigned char *data) {
+int16_t readInt16(int index, unsigned char *data) {
     return bytes_to_u16(data[index], data[index + 1]);
 }
 
-unsigned char *readWithDynamicLength(int *index, int dependentFieldType, unsigned char *data) {
+/*
+ * Write the value to data from index
+ */
+void writeInt16(int16_t value, int index, unsigned char *data){
+    for (int i = sizeof(int16_t) - 1; i >= 0; i--)
+    {
+        data[index + i] = value & UCHAR_MAX;
+        value>>= CHAR_BIT;
+    }
+}
+
+
+unsigned char *readWithDynamicLength(int *index, int16_t dependentFieldType, unsigned char *data) {
     int fieldIndex = findFieldByType((field_type) dependentFieldType);
     return read(index, bytes_to_u16(fields[fieldIndex].value[0], fields[fieldIndex].value[1]), data);
 }
 
 void *deserializeInf(cmd *_cmd, field *_field, unsigned char *data) {
-    _cmd->id = 1;
+    _cmd->id = readInt16(_field->index, data);
 }
 
 void *deserializeAnyCmd(cmd *_cmd, field *_field, unsigned char *data) {
@@ -144,7 +159,7 @@ void *deserialize(cmd *_cmd, field *_field, unsigned char *data) {
     }
 }
 
-field *Parse(unsigned char *data) {
+cmd *Parse(unsigned char *data) {
 
     //Should be used internal data
 //    unsigned char *_innerData = malloc(sizeof(data));
@@ -168,7 +183,7 @@ field *Parse(unsigned char *data) {
                 break;
             case dynamic_length:
 //                (*_field).value = readWithDynamicLength(&index, (*_field).length, data);
-                (*_field).length = readInt(fields[findFieldByType((field_type) (*_field).length)].index, data);
+                (*_field).length = readInt16(fields[findFieldByType((field_type) (*_field).length)].index, data);
                 (*_field).length_type = fix_length;
 
                 (*_field).index = index;
@@ -189,10 +204,62 @@ field *Parse(unsigned char *data) {
         count++;
     }
 
-    printf("command type: %x, flag: %x \n", _cmd->type, _cmd->flag);
-
-
+    return _cmd;
 }
 
-
-
+unsigned char *Compose(cmd command){
+    int resultSize = fieldsSize + sizeof(command.data);
+    unsigned char *result = malloc(resultSize);
+    int i;
+    int fieldIndex = 0;
+    for (i = 0; i <= fieldc; i++)
+    {
+        switch (fields[i].type)
+        {
+            case STX:
+                *(result + fieldIndex) = fields[i].default_value;
+                fieldIndex += fields[i].length;
+                break;
+            case COM:
+                *(result + fieldIndex) = command.type;
+                fieldIndex += fields[i].length;
+                break;
+            case FLG:
+                *(result + fieldIndex) = command.flag;
+                fieldIndex += fields[i].length;
+                break;
+            case INF:
+                writeInt16(command.id, fieldIndex, result);
+                fieldIndex += fields[i].length;
+                break;
+            case SER:
+                *(result + fieldIndex) = fields[i].default_value;
+                fieldIndex += fields[i].length;
+                break;
+            case LEN:
+                if(command.data == NULL) {
+                    *(result + fieldIndex) = 0x00;
+                }
+                else{
+                    *(result + fieldIndex) = sizeof(command.data);
+                }
+                fieldIndex += fields[i].length;
+                break;
+            case DTA:
+                if(command.data != NULL){
+                    memccpy(result + fieldIndex, command.data, sizeof(command.data), sizeof(unsigned char));
+                    fieldIndex += sizeof(command.data);
+                }
+                break;
+            case CRC:
+                *(result + fieldIndex) = (unsigned char) fields[i].default_value;
+                fieldIndex += fields[i].length;
+                break;
+            case ETX:
+                *(result + fieldIndex) = (unsigned char) fields[i].default_value;
+                fieldIndex += fields[i].length;
+                break;
+        }
+    }
+    return result;
+}

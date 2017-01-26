@@ -1,6 +1,8 @@
 #ifndef _PROTOCOL_H_
 #define _PROTOCOL_H_
 
+#include <stdint.h>
+
 typedef enum {
      INFO = 0,
      DBUG = 1,
@@ -8,8 +10,6 @@ typedef enum {
 } log_levels;
 
 extern log_levels log_level; 
- 
-int getfavoritenumber(void);
 
 typedef enum{
         STX = 0,
@@ -51,14 +51,14 @@ typedef struct {
         int index;
         field_type type;
         field_length_type length_type;
-        int length;
-        int default_value;
+        int16_t length;
+        int16_t default_value;
         unsigned char *value;
-        int *valid_values;
+        unsigned char *valid_values;
 } field;
 
 typedef struct{
-    unsigned int id;
+    unsigned short id;
     cmd_type type;
     cmd_flag flag;
     void *data;
@@ -72,21 +72,22 @@ void SetFieldCount(int count);
 /*
 * Add static length field
 */
-void AddField(field_type fieldType, int length, int defaultValue, int validValues[]);
+void AddField(field_type fieldType, int16_t length, unsigned char defaultValue, unsigned char validValues[]);
 
 /*
 * Add dynamic length field
 */
-void AddDynamicLengthField(field_type fieldType, field_type dependentFieldType, int defaultValue, int validValues[]);
+void AddDynamicLengthField(field_type fieldType, field_type dependentFieldType, unsigned char defaultValue, unsigned char validValues[]);
 
 /*
 * Parse the incoming data based on the defined protocol
 */
-field * Parse(unsigned char *data);
+cmd * Parse(unsigned char *data);
 
 /*
-*
-*/
-void Compose();
- 
+ * Serialize the command into a byte array
+ */
+unsigned char * Compose(cmd command);
+
+
 #endif
