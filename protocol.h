@@ -32,6 +32,15 @@ typedef enum{
     SVE_SNG = 0X85
 } cmd_type;
 
+typedef enum{
+    EXC_CMD = 0x80,
+    EXC_SUC = 0x81,
+    CMD_IGN = 0x82,
+    STR_FRM_ERR = 0x83,
+    END_FRM_ERR = 0x84,
+    DTA_LNG_ERR = 0X85,
+    CRC_ERR = 0X86
+} cmd_flag;
 
 typedef enum {
         fix_length = 0,
@@ -44,15 +53,14 @@ typedef struct {
         field_length_type length_type;
         int length;
         int default_value;
-        int from;
-        int to;
         unsigned char *value;
         int *valid_values;
 } field;
 
-
 typedef struct{
+    unsigned int id;
     cmd_type type;
+    cmd_flag flag;
     void *data;
 } cmd;
 
@@ -75,7 +83,6 @@ void AddDynamicLengthField(field_type fieldType, field_type dependentFieldType, 
 * Parse the incoming data based on the defined protocol
 */
 field * Parse(unsigned char *data);
-
 
 /*
 *
