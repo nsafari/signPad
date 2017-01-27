@@ -15,7 +15,9 @@ void PrintCommState(DCB dcb) {
              dcb.StopBits);
 }
 
-void ReadCharacterFromCom1(HANDLE comPorthandle, unsigned char *theCharacter);
+void ReadCharacterFromCom(HANDLE comPorthandle, unsigned char *theCharacter);
+
+void WriteCharacterToCom(HANDLE comPortHandle, unsigned char *theCharacter, int bytesSize);
 
 void ConfigCOM(HANDLE *serialHandle);
 
@@ -40,27 +42,44 @@ int main(int argc, char *argv[]) {
 
     HANDLE serialHandle;
 
-    ConfigCOM(&serialHandle);
 
+    /*
+     * Read and parse data from COM
+     */
     unsigned char byte = 0xaa;
     unsigned char *bytes = &byte;
 
-    ReadCharacterFromCom1(serialHandle, bytes);
+    ConfigCOM(&serialHandle);
+    ReadCharacterFromCom(serialHandle, bytes);
+
+//    ConfigCOM(&serialHandle);
+//    char DataBuffer[] = "Hello";
+//    WriteCharacterToCom(serialHandle, DataBuffer, 4);
+
     cmd *request = Parse(bytes);
     printf("command id: %d, type: %x, flag: %x \n", request->id, request->type, request->flag);
+
+
+    /*
+     * Execute command
+     */
     cmd response = ExecuteCommand(request);
 
-    bytes = Compose(response);
-
-    Parse(bytes);
-
-    CloseHandle(serialHandle);
+    /*
+     * Write response
+     */
+    ConfigCOM(&serialHandle);
+    int bytesSize = 0;
+    bytes = Compose(response, &bytesSize);
+    WriteCharacterToCom(serialHandle, bytes, bytesSize);
 
     system("PAUSE");
+
+    CloseHandle(serialHandle);
     return 0;
 }
 
-cmd ExecuteCommand(cmd *_cmd){
+cmd ExecuteCommand(cmd *_cmd) {
     cmd response;
     response.id = 400;
     response.type = CLR_SCR;
@@ -69,7 +88,7 @@ cmd ExecuteCommand(cmd *_cmd){
     return response;
 }
 
-void ConfigCOM(HANDLE *serialHandle){
+void ConfigCOM(HANDLE *serialHandle) {
     BOOL fSuccess;
     TCHAR *pcCommPort = TEXT("\\\\.\\COM5");
     // Open serial port
@@ -99,7 +118,7 @@ void ConfigCOM(HANDLE *serialHandle){
     if (!fSuccess) {
         //  Handle the error.
         printf("SetCommState failed with error %d.\n", GetLastError());
-        exit (3);
+        exit(3);
     }
 
 
@@ -108,20 +127,45 @@ void ConfigCOM(HANDLE *serialHandle){
     if (!fSuccess) {
         //  Handle the error.
         printf("GetCommState failed with error %d.\n", GetLastError());
-        exit (2);
+        exit(2);
     }
 
 
     PrintCommState(serialParams);       //  Output to console
+}
 
-    char DataBuffer[] = "Hello";
-    DWORD dwBytesToWrite = (DWORD) strlen(DataBuffer);
+void ReadCharacterFromCom(HANDLE comPorthandle, unsigned char *theCharacter) {
+
+    DWORD numBytesRead;
+
+    printf("Read bytes -> %x \n", *theCharacter);
+
+    numBytesRead = 0;
+
+    while (numBytesRead == 0) {
+        ReadFile(comPorthandle,           // handle of file to read
+                 theCharacter,            // store read data here
+                 100,    // number of bytes to read
+                 &numBytesRead,           // pointer to number of bytes actually read
+                 NULL);
+    }
+
+
+    printf("byte read: %d.\n", numBytesRead);
+    printf("Read bytes -> %x \n", *theCharacter);
+
+    CloseHandle(comPorthandle);
+
+}
+
+void WriteCharacterToCom(HANDLE comPortHandle, unsigned char *theCharacter, int bytesSize) {
+    BOOL fSuccess;
     DWORD dwBytesWritten = 0;
 
     fSuccess = WriteFile(
-            *serialHandle,
-            DataBuffer,
-            dwBytesToWrite,
+            comPortHandle,
+            theCharacter,
+            bytesSize,
             &dwBytesWritten,
             NULL);
 
@@ -129,34 +173,11 @@ void ConfigCOM(HANDLE *serialHandle){
 
 
     if (!fSuccess) {
-        //  Handle the error.
+//  Handle the error.
         printf("GetCommState failed with error %d.\n", GetLastError());
-        exit (2);
+        exit(2);
     }
+
 }
 
-void ReadCharacterFromCom1(HANDLE comPorthandle, unsigned char *theCharacter) {
-
-    DWORD numBytesRead;
-
-    printf("Read bytes -> %x \n", *theCharacter);
-
-//    while (1 == 1) {
-        numBytesRead = 0;
-
-        while (numBytesRead == 0) {
-            ReadFile(comPorthandle,           // handle of file to read
-                     theCharacter,            // store read data here
-                     100,    // number of bytes to read
-                     &numBytesRead,           // pointer to number of bytes actually read
-                     NULL);
-        }
-
-
-        printf("byte read: %d.\n", numBytesRead);
-        printf("Read bytes -> %x \n", *theCharacter);
-
-//       memset(theCharacter, 0, 100*sizeof(*theCharacter));
-//    }
-}
 

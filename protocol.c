@@ -207,57 +207,57 @@ cmd *Parse(unsigned char *data) {
     return _cmd;
 }
 
-unsigned char *Compose(cmd command){
+unsigned char *Compose(cmd command, int *bytesSize){
     int resultSize = fieldsSize + sizeof(command.data);
     unsigned char *result = malloc(resultSize);
     int i;
-    int fieldIndex = 0;
+    *bytesSize = 0;
     for (i = 0; i <= fieldc; i++)
     {
         switch (fields[i].type)
         {
             case STX:
-                *(result + fieldIndex) = fields[i].default_value;
-                fieldIndex += fields[i].length;
+                *(result + *bytesSize) = fields[i].default_value;
+                *bytesSize += fields[i].length;
                 break;
             case COM:
-                *(result + fieldIndex) = command.type;
-                fieldIndex += fields[i].length;
+                *(result + *bytesSize) = command.type;
+                *bytesSize += fields[i].length;
                 break;
             case FLG:
-                *(result + fieldIndex) = command.flag;
-                fieldIndex += fields[i].length;
+                *(result + *bytesSize) = command.flag;
+                *bytesSize += fields[i].length;
                 break;
             case INF:
-                writeInt16(command.id, fieldIndex, result);
-                fieldIndex += fields[i].length;
+                writeInt16(command.id, *bytesSize, result);
+                *bytesSize += fields[i].length;
                 break;
             case SER:
-                *(result + fieldIndex) = fields[i].default_value;
-                fieldIndex += fields[i].length;
+                *(result + *bytesSize) = fields[i].default_value;
+                *bytesSize += fields[i].length;
                 break;
             case LEN:
                 if(command.data == NULL) {
-                    *(result + fieldIndex) = 0x00;
+                    *(result + *bytesSize) = 0x00;
                 }
                 else{
-                    *(result + fieldIndex) = sizeof(command.data);
+                    *(result + *bytesSize) = sizeof(command.data);
                 }
-                fieldIndex += fields[i].length;
+                *bytesSize += fields[i].length;
                 break;
             case DTA:
                 if(command.data != NULL){
-                    memccpy(result + fieldIndex, command.data, sizeof(command.data), sizeof(unsigned char));
-                    fieldIndex += sizeof(command.data);
+                    memccpy(result + *bytesSize, command.data, sizeof(command.data), sizeof(unsigned char));
+                    *bytesSize += sizeof(command.data);
                 }
                 break;
             case CRC:
-                *(result + fieldIndex) = (unsigned char) fields[i].default_value;
-                fieldIndex += fields[i].length;
+                *(result + *bytesSize) = (unsigned char) fields[i].default_value;
+                *bytesSize += fields[i].length;
                 break;
             case ETX:
-                *(result + fieldIndex) = (unsigned char) fields[i].default_value;
-                fieldIndex += fields[i].length;
+                *(result + *bytesSize) = (unsigned char) fields[i].default_value;
+                *bytesSize += fields[i].length;
                 break;
         }
     }

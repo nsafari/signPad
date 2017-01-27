@@ -87,7 +87,7 @@ cmd * Parse(unsigned char *data);
 /*
  * Serialize the command into a byte array
  */
-unsigned char * Compose(cmd command);
+unsigned char * Compose(cmd command, int *bytesSize);
 
 
 #endif
